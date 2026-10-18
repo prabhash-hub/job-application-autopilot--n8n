@@ -1,0 +1,439 @@
+{
+  "name": "Job Application Autopilot - Master",
+  "nodes": [
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.groq.com/openai/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer  "
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "=\n{{ JSON.stringify({\n  model: \"openai/gpt-oss-120b\",\n  temperature: 0.2,\n  messages: [\n    {\n      role: \"system\",\n      content: `You are Job Application Autopilot, a professional resume analyst and cover-letter writer.\n\nOBJECTIVE:\nCompare the resume against the exact job description and create an accurate analysis and personalized cover letter.\n\nACCURACY RULES:\n- Use the exact job title and company name supplied in the form.\n- Never invent or guess personal details, qualifications, dates, experience, internships, achievements, projects, certifications, or profile links.\n- Use only facts supported by the submitted form or resume.\n- If form and resume details conflict, mention the discrepancy in reasoning. Do not silently choose a conflicting detail.\n- A skill missing from the resume is not proof the candidate lacks it. Say it is not evidenced in the resume.\n- Never exaggerate experience or describe projects as production-grade without evidence.\n- Calculate fit_score from 0 to 100 based on relevant evidence. Explain the strengths and gaps. The score is an estimate, not a hiring decision.\n- matching_skills must contain relevant skills supported by the resume.\n- missing_skills must contain relevant job requirements not evidenced in the resume. Avoid duplicates and irrelevant skills.\n\nPERSONAL INFORMATION EXTRACTION:\n- Extract applicant_name, applicant_email, applicant_phone, linkedin_url, portfolio_url, github_url, education, and graduation_date from the resume or submitted form only.\n- For applicant_name and applicant_email, prefer the corresponding form value when provided. Never replace it with a guessed value.\n- Extract contact details and URLs exactly as written. Do not construct, repair, or invent links.\n- If a field is unavailable, return an empty string for that field.\n- Add the human-readable label of every missing profile field to missing_information. Examples: \"LinkedIn URL not found in resume\", \"Portfolio URL not found in resume\", \"Email not found in resume or form\".\n- Do not mark a field missing if it is provided by the form or resume.\n- Use the verified applicant name as the report heading when available. If unavailable, use \"Your Resume Analysis\".\n\nCOVER LETTER RULES:\n- Write a concise, professional cover letter for the exact submitted job title and company.\n- Use only verified education, skills, dates, experience, and projects.\n- If the name is unavailable, begin with \"Dear Hiring Team\".\n- Omit unsupported claims and unknown personal details.\n- Never include fake email addresses, phone numbers, GitHub URLs, portfolio URLs, or placeholders.\n- Use normal paragraphs and a professional closing.\n\nOUTPUT RULES:\n- Return valid JSON only. No commentary outside JSON.\n- Do not use Markdown, **bold**, asterisks for formatting, Markdown headings, tables, or Markdown links.\n- fit_score must be a number from 0 to 100.\n- matching_skills, missing_skills, and missing_information must be arrays of strings.\n- All other fields must be strings.\n- Use empty strings for missing personal details.\n\nReturn exactly this schema:\n{\n  \"applicant_name\": \"\",\n  \"applicant_email\": \"\",\n  \"applicant_phone\": \"\",\n  \"linkedin_url\": \"\",\n  \"portfolio_url\": \"\",\n  \"github_url\": \"\",\n  \"education\": \"\",\n  \"graduation_date\": \"\",\n  \"fit_score\": 0,\n  \"reasoning\": \"\",\n  \"matching_skills\": [],\n  \"missing_skills\": [],\n  \"missing_information\": [],\n  \"cover_letter\": \"\"\n}`\n    },\n    {\n      role: \"user\",\n      content:\n        \"APPLICANT NAME FROM FORM:\\n\" +\n        ($('On form submission1').first().json.applicant_name || \"\") +\n        \"\\nAPPLICANT EMAIL FROM FORM:\\n\" +\n        ($('On form submission1').first().json.applicant_email || \"\") +\n        \"\\nJOB TITLE:\\n\" +\n        ($('On form submission1').first().json.job_title || \"\") +\n        \"\\nCOMPANY NAME:\\n\" +\n        ($('On form submission1').first().json.company_name || \"\") +\n        \"\\nJOB DESCRIPTION:\\n\" +\n        ($('On form submission1').first().json.job_description || \"\") +\n        \"\\nRESUME TEXT:\\n\" +\n        ($('Extract from File1').first().json.text || \"\")\n    }\n  ]\n}) }}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        624,
+        144
+      ],
+      "id": "97cbd0d0-6b60-40ac-842d-371aaace3a1d",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "85dada01-7ce8-4785-a940-5eb4bd1b813a",
+              "name": "applicant_name",
+              "value": "={{ $('On form submission1').first().json.applicant_name }}",
+              "type": "string"
+            },
+            {
+              "id": "b3771c70-97bb-43ac-9cc7-599dc3c5580e",
+              "name": "applicant_email",
+              "value": "={{ $('On form submission1').first().json.applicant_email }}",
+              "type": "string"
+            },
+            {
+              "id": "fda55b2a-5dc2-4d2b-b396-f095c7bf31bd",
+              "name": "job_title",
+              "value": "={{ $('On form submission1').first().json.job_title }}",
+              "type": "string"
+            },
+            {
+              "id": "b8217c33-5706-4d57-86fd-20ab542c35b8",
+              "name": "company_name",
+              "value": "={{ $('On form submission1').first().json.company_name }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        1072,
+        144
+      ],
+      "id": "8cbcc2ae-59b6-420d-8dc7-57b492f13230",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst content = $json.choices[0].message.content;\n\nconst cleaned = content\n  .replace(/^```json\\s*/i, \"\")\n  .replace(/^```\\s*/i, \"\")\n  .replace(/\\s*```$/i, \"\")\n  .trim();\n\nconst result = JSON.parse(cleaned);\n\nreturn [{ json: result }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        848,
+        144
+      ],
+      "id": "23e46388-2656-47a6-9fb2-2532978a6a2a",
+      "name": "Parse AI Result"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('On form submission1').first().json.applicant_email }}",
+        "subject": "={{ 'Your Job Application Analysis - ' + $('On form submission1').first().json.job_title }}",
+        "message": "=\n{{\n(() => {\n  const data = $('Edit Fields').first().json;\n  const esc = (s) => String(s ?? '').replace(/[&<>\"']/g, c => ({\n    '&':'&amp;', '<':'&lt;', '>':'&gt;', '\"':'&quot;', \"'\":'&#39;'\n  }[c]));\n\n  const skills = (v) => {\n    if (Array.isArray(v)) return v.map(esc).join(', ');\n    return esc(v || 'Not specified');\n  };\n\n  const score = Number(data.fit_score || 0);\n  const scoreColor = score >= 75 ? '#16803c' : score >= 50 ? '#b7791f' : '#c53030';\n\n  return `\n  <div style=\"margin:0;background:#f3f5f9;padding:28px 12px;font-family:Arial,Helvetica,sans-serif;color:#243047;\">\n    <div style=\"max-width:680px;margin:auto;background:#ffffff;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;\">\n      <div style=\"background:#172554;padding:26px 30px;color:#ffffff;\">\n        <div style=\"font-size:12px;letter-spacing:1.5px;color:#bfdbfe;\">JOB APPLICATION AUTOPILOT</div>\n        <h1 style=\"font-size:24px;margin:12px 0 6px;\">Your Resume Analysis</h1>\n        <p style=\"font-size:14px;margin:0;color:#dbeafe;\">Personalized insights for your job application</p>\n      </div>\n\n      <div style=\"padding:28px 30px;\">\n        <p style=\"font-size:16px;\">Hello ${esc(data.applicant_name || 'Candidate')},</p>\n        <p style=\"font-size:14px;line-height:1.7;color:#475569;\">We've analysed your resume against the job details you submitted. Here's a summary to help you understand your alignment with the role.</p>\n\n        <table style=\"width:100%;border-collapse:collapse;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;\">\n          <tr><td style=\"padding:12px;border-bottom:1px solid #e2e8f0;color:#64748b;\">Position</td><td style=\"padding:12px;border-bottom:1px solid #e2e8f0;font-weight:bold;\">${esc(data.job_title)}</td></tr>\n          <tr><td style=\"padding:12px;color:#64748b;\">Company</td><td style=\"padding:12px;font-weight:bold;\">${esc(data.company_name)}</td></tr>\n        </table>\n\n        <div style=\"margin:24px 0;padding:20px;text-align:center;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;\">\n          <div style=\"font-size:13px;color:#64748b;\">ESTIMATED RESUME–JOB MATCH</div>\n          <div style=\"font-size:38px;font-weight:bold;color:${scoreColor};margin:8px 0;\">${esc(score)}/100</div>\n          <div style=\"font-size:12px;color:#64748b;\">AI-generated estimate, not a hiring decision</div>\n        </div>\n\n        <h2 style=\"font-size:18px;color:#172554;\">Analysis Summary</h2>\n        <p style=\"font-size:14px;line-height:1.8;color:#475569;white-space:pre-line;\">${esc(data.reasoning || 'No reasoning provided.')}</p>\n\n        <h2 style=\"font-size:18px;color:#172554;\">Matching Skills</h2>\n        <p style=\"font-size:14px;line-height:1.8;color:#166534;\">${skills(data.matching_skills)}</p>\n\n        <h2 style=\"font-size:18px;color:#172554;\">Skills to Improve</h2>\n        <p style=\"font-size:14px;line-height:1.8;color:#9a3412;\">${skills(data.missing_skills)}</p>\n\n        <div style=\"height:1px;background:#e2e8f0;margin:28px 0;\"></div>\n        <h2 style=\"font-size:21px;color:#172554;\">Your Personalized Cover Letter</h2>\n        <div style=\"font-size:14px;line-height:1.9;color:#334155;white-space:pre-line;\">${esc(data.cover_letter || 'No cover letter was generated.')}</div>\n\n        <p style=\"font-size:13px;line-height:1.7;color:#64748b;margin-top:28px;\">Tip: Review the cover letter and verify all qualifications, dates, links and contact details before using it to apply.</p>\n      </div>\n\n      <div style=\"background:#f8fafc;border-top:1px solid #e2e8f0;padding:18px 30px;color:#64748b;font-size:12px;line-height:1.6;\">\n        Generated by Job Application Autopilot<br>\n        This report is intended to support your job search. The match score is an estimate, not a guarantee of selection.\n      </div>\n    </div>\n  </div>`;\n})()\n}}\n",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1296,
+        144
+      ],
+      "id": "9f254d62-d2ef-4a91-bd05-80548a40dde3",
+      "name": "Send a message",
+      "webhookId": "2481bdd2-8c25-4b67-bcee-733fbb512518",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "JjgemRmX05gQlrIW",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1wFxJn1DQ-NXVeraAOcFZf-4Z4NshjG_234vTXBdTKF8",
+          "mode": "list",
+          "cachedResultName": "Job Autopilot",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1wFxJn1DQ-NXVeraAOcFZf-4Z4NshjG_234vTXBdTKF8/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Resume Analyser",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1wFxJn1DQ-NXVeraAOcFZf-4Z4NshjG_234vTXBdTKF8/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "applicant_name": "={{ $('Edit Fields').first().json.applicant_name }}",
+            "applicant_email": "={{ $('Edit Fields').first().json.applicant_email }}",
+            "job_title": "={{ $('Edit Fields').first().json.job_title }}",
+            "company_name": "={{ $('Edit Fields').first().json.company_name }}",
+            "fit_score": "={{ $('Edit Fields').first().json.fit_score }}",
+            "reasoning": "={{ $('Edit Fields').first().json.reasoning }}",
+            "matching_skills": "={{ $('Edit Fields').first().json.matching_skills.join(', ') }}",
+            "missing_skills": "={{ $('Edit Fields').first().json.missing_skills.join(', ') }}",
+            "cover_letter": "={{ $('Edit Fields').first().json.cover_letter }}",
+            "applied_at": "={{ $now.setZone('Asia/Kolkata').toFormat('dd-MM-yyyy hh:mm a') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "applicant_name",
+              "displayName": "applicant_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "applicant_email",
+              "displayName": "applicant_email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "job_title",
+              "displayName": "job_title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "company_name",
+              "displayName": "company_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "fit_score",
+              "displayName": "fit_score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "reasoning",
+              "displayName": "reasoning",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "matching_skills",
+              "displayName": "matching_skills",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "missing_skills",
+              "displayName": "missing_skills",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "cover_letter",
+              "displayName": "cover_letter",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "applied_at",
+              "displayName": "applied_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1520,
+        144
+      ],
+      "id": "2980920d-7f41-484e-91d3-68543257f83d",
+      "name": "Append row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "lCoEDBtTCHoLjJ04",
+          "name": "Google Sheets account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "calendar": {
+          "__rl": true,
+          "value": "vermaprabhash427@gmail.com",
+          "mode": "list",
+          "cachedResultName": "vermaprabhash427@gmail.com"
+        },
+        "start": "={{ $now.plus({ minutes: 2 }).toISO() }}",
+        "end": "={{ $now.plus({ minutes: 32 }).toISO() }}",
+        "additionalFields": {
+          "description": "=Applicant: {{ $('Edit Fields').first().json.applicant_name }} Job: {{ $('Edit Fields').first().json.job_title }} Company: {{ $('Edit Fields').first().json.company_name }} Fit Score: {{ $('Edit Fields').first().json.fit_score }}/100 Applicant Email: {{ $('Edit Fields').first().json.applicant_email }}",
+          "summary": "Job Application Follow-up"
+        }
+      },
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3,
+      "position": [
+        1744,
+        144
+      ],
+      "id": "388d4b23-8e8d-45ad-9073-417eca757ab7",
+      "name": "Create an event",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "sLlAQvi5K4x7oF7h",
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "formTitle": "Job Application Autopilot",
+        "formDescription": "🚀 Welcome to Job Application Autopilot!\n\nReady to take the next step in your career? Let AI help you prepare for your dream job. 💼\n\n📄 Upload your resume and enter your target job details to receive:\n\n🎯 AI-powered Resume–Job Match Score\n✅ Your Matching Skills\n📈 Skills You Can Improve\n✉️ Personalized Cover Letter\n🔍 Resume Insights & Recommendations\n\n✨ Your career journey starts here!\n\n🔒 Your information should be accurate. Missing details will not be invented. AI-generated results are estimates, so please review your analysis and cover letter before applying.\n\n👇 Fill in the form below to get started!",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "applicant_name"
+            },
+            {
+              "fieldLabel": "applicant_email",
+              "fieldType": "email"
+            },
+            {
+              "fieldLabel": "job_title"
+            },
+            {
+              "fieldLabel": "company_name"
+            },
+            {
+              "fieldLabel": "job_description",
+              "fieldType": "textarea"
+            },
+            {
+              "fieldLabel": "resume",
+              "fieldType": "file"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.6,
+      "position": [
+        144,
+        144
+      ],
+      "id": "8f5a66c5-ae90-45c7-be5b-12cd39a0a396",
+      "name": "On form submission1",
+      "webhookId": "78d1e7af-095b-4c3b-b075-ffae971f3eed"
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "binaryPropertyName": "resume",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        400,
+        144
+      ],
+      "id": "3cf408cd-e371-4bdd-b229-37ca0d150daa",
+      "name": "Extract from File1"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Parse AI Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse AI Result": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a message": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append row in sheet": {
+      "main": [
+        [
+          {
+            "node": "Create an event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "On form submission1": {
+      "main": [
+        [
+          {
+            "node": "Extract from File1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File1": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "c56ff936-efb8-450f-969a-9820a788b94b",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "ad6f11efc252c7163d375d27cf4ae3311ed8956fe3d2ec9c39276fb1c57c1322"
+  },
+  "nodeGroups": [],
+  "id": "zSHvAIXsUuuPSggV",
+  "tags": []
+}
