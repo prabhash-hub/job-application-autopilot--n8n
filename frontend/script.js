@@ -7,7 +7,7 @@
    ========================================================= */
 
 const CONFIG = {
-  WEBHOOK_URL: "https://prabhash123.app.n8n.cloud/webhook-test/094b7448-69ad-40a8-a237-62d1de8f748d", // e.g. "https://your-n8n.host/webhook/job-application"
+  WEBHOOK_URL: "https://prabhash123.app.n8n.cloud/webhook/094b7448-69ad-40a8-a237-62d1de8f748d", // your n8n Form Trigger / Webhook URL goes here
   DEMO_DELAY: 620, // ms per workflow step in demo mode
   MAX_FILE_MB: 10,
   ALLOWED_TYPES: [
