@@ -1,0 +1,470 @@
+{
+  "name": "Job Application Autopilot - Master copy",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "094b7448-69ad-40a8-a237-62d1de8f748d",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "http://127.0.0.1:5500"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.2,
+      "position": [
+        -112,
+        0
+      ],
+      "id": "1b57d9eb-3a1b-4543-9e03-beef6d463d5e",
+      "name": "Website Form Submission",
+      "webhookId": "094b7448-69ad-40a8-a237-62d1de8f748d"
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "binaryPropertyName": "resume",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        192,
+        0
+      ],
+      "id": "9fd1499b-fd7b-453d-b4ac-42e295237a78",
+      "name": "Resume Text Extraction"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.groq.com/openai/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer "
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "=\n{{\nJSON.stringify({\n  model: \"openai/gpt-oss-120b\",\n  temperature: 0.2,\n  messages: [\n    {\n      role: \"system\",\n      content: `You are Job Application Autopilot, a professional resume analyst and cover-letter writer.\n\nOBJECTIVE:\nCompare the resume against the exact job description and create an accurate analysis and personalized cover letter.\n\nACCURACY RULES:\n- Use the exact job title and company name supplied in the form.\n- Never invent personal details, qualifications, dates, experience, internships, achievements, projects, certifications, or profile links.\n- Use only facts supported by the submitted form or resume.\n- If form and resume details conflict, mention the discrepancy in reasoning.\n- A skill missing from the resume is not proof the candidate lacks it.\n- Calculate fit_score from 0 to 100 based on relevant evidence. Explain strengths and gaps.\n- matching_skills must contain relevant skills supported by the resume.\n- missing_skills must contain relevant job requirements not evidenced in the resume.\n\nPERSONAL INFORMATION:\n- Extract applicant_name, applicant_email, applicant_phone, linkedin_url, portfolio_url, github_url, education, and graduation_date from the resume or form only.\n- Prefer the form value for applicant name and email.\n- If a field is unavailable, return an empty string.\n- Add missing profile information labels to missing_information.\n- Do not invent or repair contact details or links.\n\nCOVER LETTER:\n- Write a concise, professional cover letter for the exact job title and company.\n- Use only verified information.\n- If the name is unavailable, begin with Dear Hiring Team.\n- Never include fake contact details or placeholders.\n\nOUTPUT:\n- Return valid JSON only, with no Markdown or commentary.\n- fit_score must be a number from 0 to 100.\n- matching_skills, missing_skills, and missing_information must be arrays of strings.\n- All other fields must be strings.\n\nReturn exactly this schema:\n{\n  \"applicant_name\": \"\",\n  \"applicant_email\": \"\",\n  \"applicant_phone\": \"\",\n  \"linkedin_url\": \"\",\n  \"portfolio_url\": \"\",\n  \"github_url\": \"\",\n  \"education\": \"\",\n  \"graduation_date\": \"\",\n  \"fit_score\": 0,\n  \"reasoning\": \"\",\n  \"matching_skills\": [],\n  \"missing_skills\": [],\n  \"missing_information\": [],\n  \"cover_letter\": \"\"\n}`\n    },\n    {\n      role: \"user\",\n      content:\n        \"APPLICANT NAME FROM FORM:\\n\" +\n        ($('Website Form Submission').first().json.body?.applicant_name || \"\") +\n        \"\\nAPPLICANT EMAIL FROM FORM:\\n\" +\n        ($('Website Form Submission').first().json.body?.applicant_email || \"\") +\n        \"\\nJOB TITLE:\\n\" +\n        ($('Website Form Submission').first().json.body?.job_title || \"\") +\n        \"\\nCOMPANY NAME:\\n\" +\n        ($('Website Form Submission').first().json.body?.company_name || \"\") +\n        \"\\nJOB DESCRIPTION:\\n\" +\n        ($('Website Form Submission').first().json.body?.job_description || \"\") +\n        \"\\nRESUME TEXT:\\n\" +\n        ($('Resume Text Extraction').first().json.text || \"\")\n    }\n  ]\n})\n}}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        480,
+        0
+      ],
+      "id": "771ca9d2-ffa5-40e5-b6aa-869b5bee26db",
+      "name": "AI Resume Analysis",
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst content = $json.choices[0].message.content;\n\nconst cleaned = content\n  .replace(/^```json\\s*/i, \"\")\n  .replace(/^```\\s*/i, \"\")\n  .replace(/\\s*```$/i, \"\")\n  .trim();\n\nconst result = JSON.parse(cleaned);\n\nreturn [{ json: result }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        720,
+        -16
+      ],
+      "id": "d6827851-f063-41e0-af5d-4bcaae2904c4",
+      "name": "Parse AI Analysis Result"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "85dada01-7ce8-4785-a940-5eb4bd1b813a",
+              "name": "applicant_name",
+              "value": "={{ $('Website Form Submission').first().json.body.applicant_name }}",
+              "type": "string"
+            },
+            {
+              "id": "b3771c70-97bb-43ac-9cc7-599dc3c5580e",
+              "name": "applicant_email",
+              "value": "={{ $('Website Form Submission').first().json.body.applicant_email.toLowerCase() }}",
+              "type": "string"
+            },
+            {
+              "id": "fda55b2a-5dc2-4d2b-b396-f095c7bf31bd",
+              "name": "job_title",
+              "value": "={{ $('Website Form Submission').first().json.body.job_title }}",
+              "type": "string"
+            },
+            {
+              "id": "b8217c33-5706-4d57-86fd-20ab542c35b8",
+              "name": "company_name",
+              "value": "={{ $('Website Form Submission').first().json.body.company_name }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        928,
+        0
+      ],
+      "id": "dfb3afb6-6798-4346-b699-2b0f1ca797dd",
+      "name": "Prepare Application Report"
+    },
+    {
+      "parameters": {
+        "calendar": {
+          "__rl": true,
+          "value": "yashagrawal5270@gmail.com",
+          "mode": "list",
+          "cachedResultName": "yashagrawal5270@gmail.com"
+        },
+        "start": "={{ $now.plus({ days: 7 }).toISO() }}",
+        "end": "={{ $now.plus({ days: 7, minutes: 30 }).toISO() }}",
+        "additionalFields": {
+          "description": "=Applicant: {{ $('Prepare Application Report').first().json.applicant_name }} Job: {{ $('Prepare Application Report').first().json.job_title }} Company: {{ $('Prepare Application Report').first().json.company_name }} Fit Score: {{ $('Prepare Application Report').first().json.fit_score }}/100 Applicant Email: {{ $('Prepare Application Report').first().json.applicant_email }}",
+          "summary": "Job Application Follow-up"
+        }
+      },
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3,
+      "position": [
+        1600,
+        0
+      ],
+      "id": "4a8517f2-969e-43ff-8fce-64b09309b270",
+      "name": "Follow-Up Scheduler",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "TGtHOWiMfrfvs9fU",
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Website Form Submission').first().json.body.applicant_email }}",
+        "subject": "Your Resume Analysis — Please Try Again",
+        "message": "=\n{{\n(() => {\n  const data = $('Website Form Submission').first().json.body || {};\n  const name = data.applicant_name || 'Candidate';\n\n  const esc = (s) => String(s).replace(/[&<>\"']/g, c => ({\n    '&': '&amp;',\n    '<': '&lt;',\n    '>': '&gt;',\n    '\"': '&quot;',\n    \"'\": '&#39;'\n  }[c]));\n\n  return `\n  <div style=\"margin:0;background:#f1f5f9;padding:30px 12px;font-family:Arial,Helvetica,sans-serif;color:#1e293b;\">\n    <div style=\"max-width:620px;margin:auto;background:#ffffff;border:1px solid #e2e8f0;border-radius:14px;overflow:hidden;\">\n\n      <div style=\"background:#172554;padding:28px 30px;color:#ffffff;\">\n        <div style=\"font-size:12px;letter-spacing:2px;color:#bfdbfe;\">JOB APPLICATION AUTOPILOT</div>\n        <h1 style=\"font-size:25px;margin:14px 0 8px;\">We're on it!</h1>\n        <p style=\"font-size:14px;line-height:1.6;margin:0;color:#dbeafe;\">An update about your resume analysis</p>\n      </div>\n\n      <div style=\"padding:30px;\">\n        <p style=\"font-size:16px;\">Hello ${esc(name)},</p>\n\n        <p style=\"font-size:14px;line-height:1.8;color:#475569;\">\n          Thank you for submitting your resume to Job Application Autopilot.\n          Unfortunately, we couldn't complete your analysis right now because\n          the AI service encountered a temporary error.\n        </p>\n\n        <div style=\"background:#fff7ed;border:1px solid #fed7aa;border-radius:10px;padding:18px;margin:24px 0;\">\n          <div style=\"font-size:15px;font-weight:bold;color:#9a3412;margin-bottom:8px;\">\n            Analysis temporarily unavailable\n          </div>\n          <p style=\"font-size:14px;line-height:1.7;color:#7c2d12;margin:0;\">\n            Your resume match score and personalized cover letter have not\n            been generated. Please try submitting your application again later.\n          </p>\n        </div>\n\n        <p style=\"font-size:14px;line-height:1.8;color:#475569;\">\n          We apologize for the inconvenience and appreciate your patience.\n        </p>\n\n        <p style=\"font-size:14px;line-height:1.8;color:#334155;\">\n          Best regards,<br>\n          <strong>Job Application Autopilot Team</strong>\n        </p>\n      </div>\n\n      <div style=\"background:#f8fafc;border-top:1px solid #e2e8f0;padding:18px 30px;\">\n        <p style=\"font-size:12px;line-height:1.7;color:#64748b;margin:0;\">\n          This is an automated notification. Please try again later if your\n          analysis could not be completed.\n        </p>\n      </div>\n\n    </div>\n  </div>`;\n})()\n}}\n",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        640,
+        208
+      ],
+      "id": "72acee33-822b-417d-b488-02ef856e41ad",
+      "name": "AI Failure Handler",
+      "webhookId": "f4180b0c-47c1-428e-8166-80512d45fd29",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "AtZzZqrghNyffQ7P",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1reIDc4mW4CGaYNNL-SPC5mGUBSRvkokmcnELPB2cFnc",
+          "mode": "list",
+          "cachedResultName": "Job Application Autopilot",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1reIDc4mW4CGaYNNL-SPC5mGUBSRvkokmcnELPB2cFnc/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1reIDc4mW4CGaYNNL-SPC5mGUBSRvkokmcnELPB2cFnc/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "applicant_name": "={{ $('Prepare Application Report').first().json.applicant_name }}",
+            "applicant_email": "={{ $('Prepare Application Report').first().json.applicant_email }}",
+            "job_title": "={{ $('Prepare Application Report').first().json.job_title }}",
+            "company_name": "={{ $('Prepare Application Report').first().json.company_name }}",
+            "fit_score": "={{ $('Prepare Application Report').first().json.fit_score }}",
+            "reasoning": "={{ $('Prepare Application Report').first().json.reasoning }}",
+            "matching_skills": "={{ $('Prepare Application Report').first().json.matching_skills.join(', ') }}",
+            "missing_skills": "={{ $('Prepare Application Report').first().json.missing_skills.join(', ') }}",
+            "cover_letter": "={{ $('Prepare Application Report').first().json.cover_letter }}",
+            "applied_at": "={{ $now.setZone('Asia/Kolkata').toFormat('dd-MM-yyyy hh:mm a') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "applicant_name",
+              "displayName": "applicant_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "applicant_email",
+              "displayName": "applicant_email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "job_title",
+              "displayName": "job_title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "company_name",
+              "displayName": "company_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "fit_score",
+              "displayName": "fit_score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "reasoning",
+              "displayName": "reasoning",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "matching_skills",
+              "displayName": "matching_skills",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "missing_skills",
+              "displayName": "missing_skills",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "cover_letter",
+              "displayName": "cover_letter",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "applied_at",
+              "displayName": "applied_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1376,
+        0
+      ],
+      "id": "ef5520d2-141a-47eb-b112-eaf0d1f0043e",
+      "name": "Application Records Manager",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "6LLYpImdx3Mk0M3W",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Website Form Submission').first().json.body.applicant_email }}",
+        "subject": "={{ 'Your Job Application Analysis - ' + $('Website Form Submission').first().json.body.job_title }}",
+        "message": "=\n{{\n(() => {\n  const data = $('Prepare Application Report').first().json;\n  const esc = (s) => String(s ?? '').replace(/[&<>\"']/g, c => ({\n    '&':'&amp;', '<':'&lt;', '>':'&gt;', '\"':'&quot;', \"'\":'&#39;'\n  }[c]));\n\n  const skills = (v) => {\n    if (Array.isArray(v)) return v.map(esc).join(', ');\n    return esc(v || 'Not specified');\n  };\n\n  const score = Number(data.fit_score || 0);\n  const scoreColor = score >= 75 ? '#16803c' : score >= 50 ? '#b7791f' : '#c53030';\n\n  return `\n  <div style=\"margin:0;background:#f3f5f9;padding:28px 12px;font-family:Arial,Helvetica,sans-serif;color:#243047;\">\n    <div style=\"max-width:680px;margin:auto;background:#ffffff;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;\">\n      <div style=\"background:#172554;padding:26px 30px;color:#ffffff;\">\n        <div style=\"font-size:12px;letter-spacing:1.5px;color:#bfdbfe;\">JOB APPLICATION AUTOPILOT</div>\n        <h1 style=\"font-size:24px;margin:12px 0 6px;\">Your Resume Analysis</h1>\n        <p style=\"font-size:14px;margin:0;color:#dbeafe;\">Personalized insights for your job application</p>\n      </div>\n\n      <div style=\"padding:28px 30px;\">\n        <p style=\"font-size:16px;\">Hello ${esc(data.applicant_name || 'Candidate')},</p>\n        <p style=\"font-size:14px;line-height:1.7;color:#475569;\">We've analysed your resume against the job details you submitted. Here's a summary to help you understand your alignment with the role.</p>\n\n        <table style=\"width:100%;border-collapse:collapse;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;\">\n          <tr><td style=\"padding:12px;border-bottom:1px solid #e2e8f0;color:#64748b;\">Position</td><td style=\"padding:12px;border-bottom:1px solid #e2e8f0;font-weight:bold;\">${esc(data.job_title)}</td></tr>\n          <tr><td style=\"padding:12px;color:#64748b;\">Company</td><td style=\"padding:12px;font-weight:bold;\">${esc(data.company_name)}</td></tr>\n        </table>\n\n        <div style=\"margin:24px 0;padding:20px;text-align:center;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;\">\n          <div style=\"font-size:13px;color:#64748b;\">ESTIMATED RESUME–JOB MATCH</div>\n          <div style=\"font-size:38px;font-weight:bold;color:${scoreColor};margin:8px 0;\">${esc(score)}/100</div>\n          <div style=\"font-size:12px;color:#64748b;\">AI-generated estimate, not a hiring decision</div>\n        </div>\n\n        <h2 style=\"font-size:18px;color:#172554;\">Analysis Summary</h2>\n        <p style=\"font-size:14px;line-height:1.8;color:#475569;white-space:pre-line;\">${esc(data.reasoning || 'No reasoning provided.')}</p>\n\n        <h2 style=\"font-size:18px;color:#172554;\">Matching Skills</h2>\n        <p style=\"font-size:14px;line-height:1.8;color:#166534;\">${skills(data.matching_skills)}</p>\n\n        <h2 style=\"font-size:18px;color:#172554;\">Skills to Improve</h2>\n        <p style=\"font-size:14px;line-height:1.8;color:#9a3412;\">${skills(data.missing_skills)}</p>\n\n        <div style=\"height:1px;background:#e2e8f0;margin:28px 0;\"></div>\n        <h2 style=\"font-size:21px;color:#172554;\">Your Personalized Cover Letter</h2>\n        <div style=\"font-size:14px;line-height:1.9;color:#334155;white-space:pre-line;\">${esc(data.cover_letter || 'No cover letter was generated.')}</div>\n\n        <p style=\"font-size:13px;line-height:1.7;color:#64748b;margin-top:28px;\">Tip: Review the cover letter and verify all qualifications, dates, links and contact details before using it to apply.</p>\n      </div>\n\n      <div style=\"background:#f8fafc;border-top:1px solid #e2e8f0;padding:18px 30px;color:#64748b;font-size:12px;line-height:1.6;\">\n        Generated by Job Application Autopilot<br>\n        This report is intended to support your job search. The match score is an estimate, not a guarantee of selection.\n      </div>\n    </div>\n  </div>`;\n})()\n}}\n",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1152,
+        0
+      ],
+      "id": "4825128f-6539-406c-82d7-35efbde9598a",
+      "name": "Candidate Insights Delivery",
+      "webhookId": "aa08a75f-3b86-4eec-95bd-e014e98362be",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "AtZzZqrghNyffQ7P",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        944,
+        304
+      ],
+      "id": "29a48f5d-7c62-4837-bc11-be1eaab49024",
+      "name": "Respond to Webhook"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Website Form Submission": {
+      "main": [
+        [
+          {
+            "node": "Resume Text Extraction",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resume Text Extraction": {
+      "main": [
+        [
+          {
+            "node": "AI Resume Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Resume Analysis": {
+      "main": [
+        [
+          {
+            "node": "Parse AI Analysis Result",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AI Failure Handler",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse AI Analysis Result": {
+      "main": [
+        [
+          {
+            "node": "Prepare Application Report",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Application Report": {
+      "main": [
+        [
+          {
+            "node": "Candidate Insights Delivery",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Application Records Manager": {
+      "main": [
+        [
+          {
+            "node": "Follow-Up Scheduler",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Candidate Insights Delivery": {
+      "main": [
+        [
+          {
+            "node": "Application Records Manager",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "4a30131c-014c-494f-899c-eb5ec922864e",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "6f587cca0fe554ce4f37ae4e3d0a928768ebad192ea36f337a8dcfea2e23138f"
+  },
+  "nodeGroups": [],
+  "id": "ADe5yf8orpUo7Vzr",
+  "tags": []
+}
