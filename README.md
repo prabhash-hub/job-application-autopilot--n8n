@@ -4,13 +4,14 @@ A product-focused landing page + application form for **Job Application Autopilo
 submit once, and the applicant gets an AI fit score (0–100 with reasoning), a personalised
 cover letter, a saved record of the application, and a 7-day follow-up reminder.
 
-Built with plain HTML, CSS, and JavaScript — no build step.
+Built with HTML, Tailwind CSS utilities from the CDN, custom CSS, and JavaScript — no build step. An internet connection is needed to load Tailwind and the hosted fonts.
 
 ## Run
 1. Open `index.html` in your browser, or open the folder in VS Code and use Live Server.
-2. Out of the box the form runs in **demo mode**: validation, file checks, the animated
-   processing steps, and a fully rendered sample result (score + reasoning + cover letter +
-   reminder) all work, and nothing leaves the browser.
+2. `script.js` currently has a workflow URL configured, so submissions are sent to that
+   endpoint. To use the browser-only demo instead, set `WEBHOOK_URL` to an empty string.
+   Demo mode includes validation, file checks, animated processing steps, and a sample
+   result; nothing is sent from the browser in that mode.
 
 ## Connect it to your n8n workflow
 1. In `script.js`, set:
@@ -35,13 +36,14 @@ Built with plain HTML, CSS, and JavaScript — no build step.
    Any other response is treated as a successful submission (results arrive by email).
 
 ## Content & structure
-- Hero, stats, "what it does for you", sample outputs, comparison, features, audience, form, FAQ, CTA.
+- Responsive SaaS landing page with workflow steps, evaluation dashboards, comparison,
+  pricing/value CTA, interactive skill preview, application form, and result states.
 - Interactive skill-match preview that compares editable resume and job-description text, highlights matches and gaps, and suggests resume improvements. It uses keyword matching and does not read uploaded files.
 - Copy is product-focused (what the applicant gets) — plugin/node names are kept out of the page.
 
 ## Files
 - `index.html` — page content and the application form
-- `style.css` — design system, layout, responsive rules
+- `style.css` — responsive design system, animations, and component styles
 - `script.js` — validation, drag-and-drop upload, demo/live run, result rendering, fallback
 
 ## Next
