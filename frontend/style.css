@@ -338,6 +338,8 @@ button { cursor: pointer; }
 .res-reason li { display: flex; align-items: flex-start; gap: 7px; color: #475569; font-size: 9px; line-height: 1.6; }
 .res-reason li b { display: grid; place-items: center; width: 16px; height: 16px; flex: none; border-radius: 50%; color: #047857; background: #d1fae5; font-size: 9px; }
 .res-reason li b.gap { color: #b45309; background: #fef3c7; }
+.res-skills { display: grid; grid-template-columns: 1fr 1fr; gap: 13px; margin-top: 14px; }
+.res-skills .match-column { min-width: 0; }
 .res-letter { margin-top: 14px; }
 .letter-preview { max-height: 270px; overflow: auto; border: 1px solid #eef2f7; border-radius: 12px; padding: 13px; color: #475569; background: #f9fafb; font-size: 10px; line-height: 1.75; }
 .letter-preview p { margin: 0 0 9px; }
@@ -459,6 +461,7 @@ button { cursor: pointer; }
   .form-title small { font-size: 8px; }
   .meta-row { align-items: flex-start; }
   .res-grid { grid-template-columns: 1fr; }
+  .res-skills { grid-template-columns: 1fr; }
   .res-score { border-right: 0; border-bottom: 1px dashed #e5e7eb; padding: 0 0 12px; }
   .progress { gap: 3px; padding-right: 7px; padding-left: 7px; }
   .pstep small { font-size: 7px; }

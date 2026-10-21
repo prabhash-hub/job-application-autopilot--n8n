@@ -232,7 +232,7 @@ $$(".field input, .field textarea").forEach((input) => {
 
 /* ---------------- demo AI generation ---------------- */
 const SKILL_BANK = [
-  "python", "sql", "excel", "tableau", "power bi", "javascript", "typescript",
+  "python", "sql", "excel", "tableau", "power bi", "html", "css", "javascript", "typescript",
   "react", "node", "aws", "gcp", "azure", "docker", "kubernetes",
   "machine learning", "tensorflow", "pandas", "statistics", "a/b testing",
   "project management", "agile", "scrum", "communication", "stakeholder",
@@ -251,6 +251,8 @@ const GAP_POOL = [
 ];
 
 const SKILL_TIPS = {
+  html: "Include an HTML project or work example and explain how you structured its content.",
+  css: "Mention a CSS project and the responsive layouts or visual improvements you implemented.",
   python: "If accurate, add a concrete Python project and name the libraries or outcome.",
   sql: "Show the SQL work you have done, such as queries, reporting, or data transformations.",
   excel: "Mention the Excel features you have used and what they helped you deliver.",
@@ -298,6 +300,9 @@ const SKILL_TIPS = {
 };
 
 const SKILL_ALIASES = {
+  html: ["html5"],
+  css: ["css3"],
+  javascript: ["js", "ecmascript"],
   automation: ["automate", "automated", "automating"],
   communication: ["communicate", "communicated", "communicating", "communications"],
   forecasting: ["forecast", "forecasts", "forecasted"],
@@ -489,9 +494,18 @@ function animateScore(target) {
 }
 
 function renderResult(data) {
-  const score = Number(data.score) || 0;
-  const reasoning = Array.isArray(data.reasoning) ? data.reasoning : [];
+  const score = Number(data.score ?? data.fit_score) || 0;
+  const reasoning = Array.isArray(data.reasoning)
+    ? data.reasoning
+    : typeof data.reasoning === "string" && data.reasoning.trim()
+      ? [data.reasoning.trim()]
+      : [];
   const letter = data.cover_letter || data.coverLetter || "";
+  const toSkillList = (skills) => {
+    if (Array.isArray(skills)) return skills.filter((skill) => typeof skill === "string" && skill.trim());
+    if (typeof skills === "string") return skills.split(",").map((skill) => skill.trim()).filter(Boolean);
+    return [];
+  };
 
   $("#res-score-num").textContent = "0";
   $("#res-verdict").textContent = verdictFor(score);
@@ -509,6 +523,35 @@ function renderResult(data) {
   if (!reasoning.length) {
     list.innerHTML = '<li><b>✓</b><span>Score generated from your CV and the job description.</span></li>';
   }
+
+  const renderResultSkills = (target, skills, emptyMessage, kind) => {
+    target.replaceChildren();
+    if (!skills.length) {
+      const empty = document.createElement("span");
+      empty.className = "empty-chip";
+      empty.textContent = emptyMessage;
+      target.appendChild(empty);
+      return;
+    }
+    skills.forEach((skill) => {
+      const chip = document.createElement("span");
+      chip.className = `skill-chip ${kind}`;
+      chip.textContent = skill;
+      target.appendChild(chip);
+    });
+  };
+  renderResultSkills(
+    $("#result-matched-skills"),
+    toSkillList(data.matching_skills ?? data.matched_skills),
+    "Matching skills were not included in the workflow response.",
+    "matched"
+  );
+  renderResultSkills(
+    $("#result-missing-skills"),
+    toSkillList(data.missing_skills),
+    "No missing skills were returned.",
+    "missing"
+  );
 
   $("#res-letter-body").innerHTML = letter
     .split(/\n\s*\n/)
@@ -585,7 +628,7 @@ form.addEventListener("submit", async (event) => {
             "The AI couldn't finish this run. Your application has still been saved, a message is on its way to your inbox, and your 7-day follow-up reminder was created. You can submit again any time."
         );
         setNotice("The AI couldn't finish this run — your application was still saved.", "error");
-      } else if (payload && (payload.score != null || payload.cover_letter || payload.coverLetter)) {
+      } else if (payload && (payload.score != null || payload.fit_score != null || payload.cover_letter || payload.coverLetter)) {
         renderResult({ ...payload, mode: "live" });
         setNotice("Done — score, letter, sheet row, and calendar reminder all created.", "ok");
       } else {
