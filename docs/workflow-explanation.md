@@ -1,54 +1,45 @@
-# Workflow Explanation
+# 🔄 n8n Workflow Guide
 
-## Project Name
-Job Application Autopilot
+## Purpose
 
-## Overview
-This workflow automates resume analysis and cover-letter generation using n8n and AI.
+The workflow accepts a website form submission, extracts PDF resume text, requests AI analysis, and connects the result to Gmail, Google Sheets, and Google Calendar.
 
-## Workflow Nodes
+## Node Reference
 
-### 1. On Form Submission
-Collects:
-- Applicant name
-- Applicant email
-- Job title
-- Company name
-- Job description
-- Resume PDF
+| Node | Function |
+|---|---|
+| `Website Form Submission` | Receives a POST request through the webhook |
+| `Resume Text Extraction` | Extracts text from the binary property `resume` using PDF extraction |
+| `AI Resume Analysis` | Calls the Groq Chat Completions endpoint with job and resume content |
+| `Parse AI Analysis Result` | Removes optional Markdown code fences and parses the AI content as JSON |
+| `Prepare Application Report` | Sets applicant name/email and job title/company fields |
+| `Candidate Insights Delivery` | Sends an analysis email through Gmail |
+| `Application Records Manager` | Appends candidate and analysis fields to Google Sheets |
+| `Follow-Up Scheduler` | Creates a 30-minute event approximately seven days ahead in the connected Google Calendar |
+| `Respond to Webhook` | Returns the parsed AI result as JSON |
+| `AI Failure Handler` | Sends a failure email if the AI request uses its error output |
 
-### 2. Extract from File
-Extracts readable text from the uploaded PDF resume.
+## AI Analysis Request
 
-### 3. HTTP Request — Groq API
-Sends the applicant's details, resume text, and job description to the Groq API.
+The prompt asks the model to:
+- compare resume evidence with the supplied job description;
+- return a numeric `fit_score` from 0 to 100;
+- explain the score;
+- list matching skills and job requirements not evidenced in the resume;
+- extract contact/profile details only when available;
+- generate a role- and company-specific cover letter;
+- return JSON matching the requested schema.
 
-The AI generates:
-- Resume-job match score
-- Analysis and reasoning
-- Matching skills
-- Missing or unverified skills
-- Personalized cover letter
-- Available contact and education information
+## Branching and Response Timing
 
-### 4. Parse AI Result
-Converts the AI-generated JSON response into structured data for the next nodes.
+The supplied workflow connects `Parse AI Analysis Result` to both `Prepare Application Report` and `Respond to Webhook`. The integrations continue from `Prepare Application Report` through Gmail, Google Sheets, and Google Calendar.
 
-### 5. Edit Fields
-Combines the original form information with the AI analysis.
+This means the webhook can return the parsed AI result before the integration branch has finished. Do not treat the website response as proof that email delivery, spreadsheet logging, or calendar scheduling succeeded.
 
-### 6. Send a Message — Gmail
-Sends the analysis report and personalized cover letter to the applicant's email address.
+## Before Publishing
 
-### 7. Append Row in Sheet
-Stores application information and AI analysis in Google Sheets.
-
-### 8. Create an Event — Google Calendar
-Creates a follow-up calendar event.
-
-## Important Notes
-- The workflow currently extracts resumes from PDF files.
-- The match score is an AI-generated estimate, not a hiring decision.
-- AI-generated content should be reviewed before use.
-- Each user must configure their own API and Google credentials.
-- Google Sheets and Calendar settings must point to the correct resources.
+- Replace exposed credentials with secure n8n credentials.
+- Check the allowed origin.
+- Confirm the webhook production URL.
+- Confirm connected accounts and destinations.
+- Run an end-to-end test and verify each integration.
